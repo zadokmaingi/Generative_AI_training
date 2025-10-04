@@ -1,0 +1,97 @@
+walker UserProfile {
+    has weight: float;
+    has height: float;
+    has age: int;
+    has gender: str;
+    has activity_level: int;
+
+    def calculate_bmr {
+        if self.gender == "male" {
+            return 88.362 + (13.397 * self.weight) + (4.799 * self.height) - (5.677 * self.age);
+        } else {
+            return 447.593 + (9.247 * self.weight) + (3.098 * self.height) - (4.330 * self.age);
+        }
+    }
+
+    def get_activity_factor {
+        if self.activity_level == 1 { return 1.2; }
+        elif self.activity_level == 2 { return 1.375; }
+        elif self.activity_level == 3 { return 1.55; }
+        elif self.activity_level == 4 { return 1.725; }
+        elif self.activity_level == 5 { return 1.9; }
+        return 1.2;
+    }
+
+    def calculate_tee {
+        return self.calculate_bmr() * self.get_activity_factor();
+    }
+
+    def explain_energy {
+        bmr = self.calculate_bmr();
+        tee = self.calculate_tee();
+        factor = self.get_activity_factor();
+
+        lifestyle = "";
+        if self.activity_level == 1 { lifestyle = "sedentary"; }
+        elif self.activity_level == 2 { lifestyle = "lightly active"; }
+        elif self.activity_level == 3 { lifestyle = "moderately active"; }
+        elif self.activity_level == 4 { lifestyle = "very active"; }
+        elif self.activity_level == 5 { lifestyle = "extra active"; }
+
+        return "Your Basal Metabolic Rate (BMR) is " + str(bmr) + " kcal/day. " +
+               "With a " + lifestyle + " lifestyle (activity factor " + str(factor) + "), " +
+               "your Total Energy Expenditure (TEE) is about " + str(tee) + " kcal/day. " +
+               "To maintain weight, eat around this intake. " +
+               "For gradual weight loss, reduce by ~500 kcal/day. " +
+               "For gradual weight gain, increase by ~300–500 kcal/day.";
+    }
+
+    # ByLLM integration
+    def generate_ai_plan {
+        bmr = self.calculate_bmr();
+        tee = self.calculate_tee();
+
+        prompt = "User details:\n" +
+                 "Age: " + str(self.age) + "\n" +
+                 "Gender: " + self.gender + "\n" +
+                 "Weight: " + str(self.weight) + " kg\n" +
+                 "Height: " + str(self.height) + " cm\n" +
+                 "Activity Level: " + str(self.activity_level) + "\n" +
+                 "BMR: " + str(bmr) + " kcal/day\n" +
+                 "TEE: " + str(tee) + " kcal/day\n\n" +
+                 "Task: Provide a daily meal plan, macronutrient balance, " +
+                 "exercise routine, and lifestyle tips tailored to this user.";
+
+      
+    }
+}
+
+walker Script {
+    def main {
+        age = int(input("Enter your age (years): "));
+        gender = str(input("Enter your gender (male/female): "));
+        weight = float(input("Enter your weight (kg): "));
+        height = float(input("Enter your height (cm): "));
+
+        print("Select your activity level:");
+        print("1. Sedentary (little or no exercise)");
+        print("2. Lightly active (light exercise 1-3 days/week)");
+        print("3. Moderately active (exercise 3-5 days/week)");
+        print("4. Very active (hard exercise 6-7 days/week)");
+        print("5. Extra active (very hard exercise/physical job)");
+        activity = int(input("Enter choice [1-5]: "));
+
+        user = UserProfile(weight=weight, height=height, age=age, gender=gender, activity_level=activity);
+
+        print("\n=== MATHEMATICAL RESULTS ===");
+        print(user.explain_energy());
+
+        print("\n=== AI-GENERATED PLAN ===");
+        print(user.generate_ai_plan());
+    }
+}
+
+with entry {
+    app = Script();
+    app.main();
+}
