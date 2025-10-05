@@ -1,3 +1,10 @@
+import from byllm.llm { Model }
+
+glob llm = Model(
+    model_name="gemini/gemini-2.5-flash",  # AI Studio provider-prefixed
+    api_version="v1",
+    verbose=True
+);
 walker UserProfile {
     has weight: float;
     has height: float;
@@ -46,24 +53,21 @@ walker UserProfile {
                "For gradual weight gain, increase by ~300–500 kcal/day.";
     }
 
-    # ByLLM integration
-    def generate_ai_plan {
-        bmr = self.calculate_bmr();
-        tee = self.calculate_tee();
+    # === Gemini byLLM integration (LLM-powered method) ===
+    """
+    Using the user's fields (age, gender, weight in kg, height in cm, activity_level 1–5)
+    and the computed BMR and TEE provided as arguments, create a concise personalized plan.
 
-        prompt = "User details:\n" +
-                 "Age: " + str(self.age) + "\n" +
-                 "Gender: " + self.gender + "\n" +
-                 "Weight: " + str(self.weight) + " kg\n" +
-                 "Height: " + str(self.height) + " cm\n" +
-                 "Activity Level: " + str(self.activity_level) + "\n" +
-                 "BMR: " + str(bmr) + " kcal/day\n" +
-                 "TEE: " + str(tee) + " kcal/day\n\n" +
-                 "Task: Provide a daily meal plan, macronutrient balance, " +
-                 "exercise routine, and lifestyle tips tailored to this user.";
+    Output ~8–12 lines including:
+    - Daily calorie target aligned with TEE
+    - Macro grams (protein, carbs, fat) with rounded whole numbers
+    - 3–4 example meals (metric units)
+    - A weekly exercise split (3–5 days/wk)
+    - 3 practical lifestyle tips
 
-      
-    }
+    Keep units metric, keep numbers rounded, and be specific but brief.
+    """
+    def generate_ai_plan(bmr: float, tee: float) -> str by llm();
 }
 
 walker Script {
@@ -86,8 +90,12 @@ walker Script {
         print("\n=== MATHEMATICAL RESULTS ===");
         print(user.explain_energy());
 
+        # Compute once so we can pass them into the LLM method
+        bmr = user.calculate_bmr();
+        tee = user.calculate_tee();
+
         print("\n=== AI-GENERATED PLAN ===");
-        print(user.generate_ai_plan());
+        print(user.generate_ai_plan(bmr=bmr, tee=tee));
     }
 }
 
@@ -95,3 +103,4 @@ with entry {
     app = Script();
     app.main();
 }
+
